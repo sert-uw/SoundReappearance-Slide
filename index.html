@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="utf-8">
+
+<title>reveal.js - The HTML Presentation Framework</title>
+
+<meta name="description"
+	content="A framework for easily creating beautiful presentations using HTML">
+<meta name="author" content="Hakim El Hattab">
+
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style"
+	content="black-translucent" />
+
+<meta name="viewport"
+	content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="stylesheet" href="css/reveal.min.css">
+<link rel="stylesheet" href="css/theme/default.css" id="theme">
+
+<!-- For syntax highlighting -->
+<link rel="stylesheet" href="lib/css/zenburn.css">
+
+<!-- If the query includes 'print-pdf', use the PDF print sheet -->
+<script>
+	document.write('<link rel="stylesheet" href="css/print/'
+			+ (window.location.search.match(/print-pdf/gi) ? 'pdf' : 'paper')
+			+ '.css" type="text/css" media="print">');
+</script>
+
+<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+</head>
+
+<body>
+
+	<div class="reveal">
+
+		<!-- Any section element inside of this container is displayed as a slide -->
+		<div class="slides">
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					##ピアノ音源を雑に再現
+					* *Author : Sert(Daiki Hiraoka)*
+					* *GitHub : sert-uw*
+					* Programs: https://github.com/sert-uw/SoundReappearance
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					##４ステップで再現しよう！
+					1. **音階と周波数**
+					2. 音色と倍音
+					3. 音の減衰率
+					4. 曲を演奏
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					###Step１：音階と周波数
+					音とは空気の振動であり、
+
+					振動数に音の高低が依存する
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					#####Step１：音階と周波数
+					####　
+					####・基本オクターブにおける音階の周波数
+					* ド 　：261.6Hz
+					* レ♭：277.2Hz
+					* レ　：293.7Hz
+					* ミ♭：311.1Hz
+					* ミ　：329.6Hz
+					* ファ：349.2Hz
+					* ソ♭：370.0Hz
+					* ソ　：392.0Hz
+					* ラ♭：415.3Hz
+					* ラ　：440.0Hz
+					* シ♭：466.2Hz
+					* シ　：493.9Hz
+
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					#####Step１：音階と周波数
+					####　
+					ドの音を鳴らすには
+
+					261.6HzのSin波を出力すればよい
+
+<embed src="./wav/C3.wav" type="audio/wav" console="sound1" controls="All" height="40" width="320" autostart="false" name="sound1">
+
+![FFT画像](./C3.png)
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					#####Step１：音階と周波数
+					####　
+					###前述の"ド"の音を鳴らすまでの流れ
+					1. データサンプリング
+					2. wavファイルへ書き込み
+					3. SoundEngineで再生＆FFT
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					#####Step１：音階と周波数
+					####　
+					###１.データサンプリング
+					サンプリング周波数に基づいてデータを記録していく
+					#####　
+					**＊サンプリング周波数(大雑把)**
+
+					アナログ信号をデジタルデータにするために
+
+					単位時間当たりに信号の値を記録する回数
+
+					(CDのサンプリング周波数は44.1kHzつまり
+
+					1sで44,100回アナログデータを採取している)
+
+					**以降のプログラムではサンプリング周波数は44.1kHz**
+
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					#####Step１：音階と周波数
+					#####１.データサンプリング
+					####　
+					ドのsin波は261.6Hzであるから
+
+					1s間に261.6回振動している
+
+					以下は0s～0.1s間における波形
+
+					![261.6Hzの0.1sにおける波形](./C3wave.png)
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					#####Step１：音階と周波数
+					#####１.データサンプリング
+					for文で繰り返しサンプリングを行う場合
+					####　
+					1ループごとに**1/サンプリング周波数**s経過し、
+
+					サンプリングするデータが1sで261.6回振動　すなわち
+
+					1sで角度が**2π×音階の周波数**だけ増加する　と考えると
+					####　
+					1ループ(1/サンプリング周波数s)での角度の増加量は
+
+					(2π×音階の周波数) / サンプリング周波数
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					#####Step１：音階と周波数
+					#####１.データサンプリング
+					####　
+					具体的に、ドの音を44.1kHzでサンプリングする場合は
+
+					各言語のsin関数に
+
+					```
+					((2 * 3.141592 * 261.6) / 44100) * count
+					```
+					を引数とした時の返り値を配列などで記録していく
+
+					＊countは繰り返し回数
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					#####Step１：音階と周波数
+					#####１.データサンプリング
+					####　
+					###sin波の振幅
+					wavファイルに記述するビット数による
+
+					* 8ビット：-128～127
+					* 16ビット：-32768～32767
+
+					絶対値上限ギリギリよりは8,9割程度の振幅が良い
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					#####Step１：音階と周波数
+					###２.wavファイルへ書き込み
+					サンプリングしたデータを各言語の方法でoutputする
+
+					以下Javaプログラム
+
+					```
+					for(int i=0; i<sinData.length; i++){
+						//sinData[i]にサンプリングした値を保持(int型)
+						//16ビットなのでリトルエンディアンで書き込みを行うようにint型をbyte型に分割
+						data[2 * i] = (byte)(sinData[i] & 0x0000ffff);
+						data[2 * i + 1] = (byte)(sinData[i] / (16 * 16));
+					}
+
+					//以下wavファイルへの書き込み
+					AudioFormat format = new AudioFormat(SAMPLING, BIT, 1, true, false);
+					AudioInputStream ais = new AudioInputStream(
+								new ByteArrayInputStream(data), format, data.length/2);
+					try{
+						AudioSystem.write(ais, AudioFileFormat.Type.WAVE,
+									new File("./" + fileName + ".wav"));
+					}catch (IOException e){
+						e.printStackTrace();
+					}
+					```
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					#####Step１：音階と周波数
+					###３.SoundEngineで再生＆FFT
+					SoundEngine Free:http://soundengine.softonic.jp/
+
+					Windows、Mac用の波形編集ソフト
+
+					wavファイルを波形として表示し、
+
+					トリミングなど編集を行えるソフトウェア
+					####　
+					・個人的に最大のおすすめポイント
+
+					**wavを再生しながらリアルタイムにFFTしてくれる！**
+
+					1. ツールバー右から２番目「ヴィジュアル」をクリック
+					2. 出てきたウインドウで右クリックし、スペクトラムアナライザーを選択
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					##４ステップで再現しよう！
+					1. 音階と周波数
+					2. **音色と倍音**
+					3. 音の減衰率
+					4. 曲を演奏
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					###Step２：音色と倍音
+					先ほどのドは明らかに機械音でピアノ音には程遠い
+					####　
+					なぜか？
+					####　
+					それは自然の音には必ず**倍音**が含まれており
+
+					**倍音**のデシベル値の違いが音色の違いを形成しているから
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					###Step２：音色と倍音
+					倍音とは基本となる音の周波数を
+
+					自然数倍した周波数をもつ音のこと
+
+					先ほどのドであれば
+
+					1. 基音（第１倍音）：261.6 Hz
+					2. 第２倍音　　　　：261.6×2 Hz (523.2 Hz)
+					3. 第３倍音　　　　：261.6×3 Hz (784.8 Hz)
+					4. 第４倍音　　　　：261.6×4 Hz (1046.4 Hz)
+					5. 第５倍音　　　　：261.6×5 Hz (1308 Hz)
+
+					・
+
+					・
+
+					・
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					###Step２：音色と倍音
+					倍音のデシベル値が音色を決めるので
+
+					再現したいピアノのデシベル値を用いる
+
+					原音をFTするのが良いが今回は
+
+					[こちら](http://www.geocities.jp/flawtips0/Pic/wav2.html#p14)のブログを参考にさせていただいた
+
+					1. 基音（第１倍音）：-25dB
+					2. 第２倍音　　　　：-33dB
+					3. 第３倍音　　　　：-30dB
+					4. 第４倍音　　　　：-44dB
+					5. 第５倍音　　　　：-46dB
+
+					・
+
+					・
+
+					・
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					####Step２：音色と倍音
+					###デシベル値から倍率を得る
+					0dBで1倍率である
+
+					以下で倍率を計算可能(Java)
+
+					```
+					public static double calcMagFromDb(int db){
+						return (Math.pow(10, db / 20.0));
+					}
+					```
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					####Step２：音色と倍音
+					後は各倍音と倍率を適応したsin波を重ね合わせて
+
+					サンプリングを行うだけである
+
+					```
+					double sinSum = 0;
+					for(int j=0; j<sin.length; j++){
+						//dbは各倍音のデシベル値配列
+						//sinは自作クラスの配列、各倍音のパラメータを設定されている
+						//(1ループごとの角速度など)
+						//getAmplitudeメソッドで現時点の振幅を返す
+						sinSum += calcMagFromDb(db[j]) * sin[j].getAmplitude();
+					}
+					//以下でsinSumをintへキャストしたり
+					//前述の8もしくは16ビットの上限に収まるように値を縮小したりする
+					```
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					####Step２：音色と倍音
+					###倍音を考慮した場合のド
+					* 基音のみ　　：<embed src="./wav/C3.wav" type="audio/wav" console="sound1" controls="All" height="40" width="320" autostart="false" name="sound1">
+					* ２倍音まで　：<embed src="./wav/C3_2.wav" type="audio/wav" console="sound1" controls="All" height="40" width="320" autostart="false" name="sound1">
+					* ３倍音まで　：<embed src="./wav/C3_3.wav" type="audio/wav" console="sound1" controls="All" height="40" width="320" autostart="false" name="sound1">
+					* ５倍音まで　：<embed src="./wav/C3_5.wav" type="audio/wav" console="sound1" controls="All" height="40" width="320" autostart="false" name="sound1">
+					* １０倍音まで：<embed src="./wav/C3_10.wav" type="audio/wav" console="sound1" controls="All" height="40" width="320" autostart="false" name="sound1">
+					* ４８倍音まで：<embed src="./wav/C3_48.wav" type="audio/wav" console="sound1" controls="All" height="40" width="320" autostart="false" name="sound1">
+
+					段々楽器のようになっていくのがわかってもらえるだろう
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					##４ステップで再現しよう！
+					1. 音階と周波数
+					2. 音色と倍音
+					3. **音の減衰率**
+					4. 曲を演奏
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					###Step３：音の減衰率
+					先ほどのドは４８倍音までいくとだいぶ楽器のようだった
+
+					しかしまだピアノとはいえない
+					####　
+					なぜか？
+					####　
+					それはピアノの音が一定の強さでずっと鳴るわけがないから
+
+					ピアノは最初に大きく鳴った後すぐに小さくなり、
+
+					その後余韻のようになるのが普通である
+
+					(＊ピアノ弾いたことも、ほとんど聴いたこともないので
+
+					間違ってたらすいません！)
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					###Step３：音の減衰率
+					音量を一定ではなくピアノのように変化させればよい
+
+					以下の線図のような変化をさせる
+
+					![減衰率画像](./graph.png)
+
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					###Step３：音の減衰率
+					以下のプログラムで先ほどの変化を行う
+
+					```
+					//経過時間による音の減衰を行う(反比例計算)
+					double down = (Main.SAMPLING / 16) / (double)count;
+
+					//上記反比例の値が1.0までとそれ以降で分岐
+					if(down < 1.0){
+						//反比例と下に凸な2次関数を用いて減衰率を定める
+						if(count < Main.SAMPLING * 3)
+							down = (down + 0.8 / (9.0 * Main.SAMPLING * Main.SAMPLING) * Math.pow(count - Main.SAMPLING*13/4, 2) + 0.1) / 2;
+						//一定時間経過後は一定値を取る
+						else
+							down = (down + 0.1) / 2;
+						sinData = (int)(sinData * down);
+					}else {
+						//反比例値が1.0になる直前に1次関数で瞬時に音量を上げる
+						if(count > Main.SAMPLING*15/256)
+							down = 256.0 / Main.SAMPLING * count - 15.0;
+						//上記条件までは無音
+						else
+							down = 0;
+						sinData = (int)(sinData * down);
+					}
+
+					//コードミスから生まれた謎の処理　何故かdownをもう一度掛けると減衰率が良い感じになる
+					sinData *= down;
+					```
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					###Step３：音の減衰率
+					先ほどのプログラムによる実際の音量変化
+
+					![実際の減衰率画像](./C3_48_down_wave.png)
+
+					<embed src="./wav/C3_48_down.wav" type="audio/wav" console="sound1" controls="All" height="40" width="320" autostart="false" name="sound1">
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					##４ステップで再現しよう！
+					1. 音階と周波数
+					2. 音色と倍音
+					3. 音の減衰率
+					4. **曲を演奏**
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					###Step４：曲を演奏
+					Step３でかなりピアノに近づいた(電子ピアノの方が近い？)
+
+					しかしやはりピアノは和音を奏でてこそである！
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					###Step４：曲を演奏
+					なので実際に奏でてみた
+
+					(楽譜が読めないので音はずれはどうか目を瞑ってください)
+
+					* ねこふんじゃった　→[リンク](http://tmbox.net/pl/476600)
+					* FFより　戦う者たち→[リンク](http://tmbox.net/pl/476611)
+
+					雑に作ったので高音の再現率が
+
+					**かなり低い**のがFFの曲からわかるかと
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					##最後に
+					[ここ](https://github.com/sert-uw/SoundReappearance)にプログラムがあるので是非見てあげてください
+
+					Markdownとreveal.jsを使ったことがなかったので
+
+					手探りのスライド作りになりわかりづらかったと思います
+
+					すいませんm(__)m
+
+					質問等ございましたら以下まで送ってください大歓迎です！
+
+					* Twitter　@DemoSert
+					* gmail　demo.sert@gmail.com
+				</script>
+			</section>
+
+			<section data-markdown data-separator="\n---\n$">
+				<script type="text/template">
+					##ご静聴
+					##ありがとうございました！
+				</script>
+			</section>
+		</div>
+
+	</div>
+
+	<script src="lib/js/head.min.js"></script>
+	<script src="js/reveal.min.js"></script>
+
+	<script>
+		// Full list of configuration options available here:
+		// https://github.com/hakimel/reveal.js#configuration
+		Reveal.initialize({
+			controls : true,
+			progress : true,
+			history : true,
+			center : true,
+
+			theme : Reveal.getQueryHash().theme, // available themes are in /css/theme
+			transition : Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+
+			// Parallax scrolling
+			// parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+			// parallaxBackgroundSize: '2100px 900px',
+
+			// Optional libraries used to extend on reveal.js
+			dependencies : [ {
+				src : 'lib/js/classList.js',
+				condition : function() {
+					return !document.body.classList;
+				}
+			}, {
+				src : 'plugin/markdown/marked.js',
+				condition : function() {
+					return !!document.querySelector('[data-markdown]');
+				}
+			}, {
+				src : 'plugin/markdown/markdown.js',
+				condition : function() {
+					return !!document.querySelector('[data-markdown]');
+				}
+			}, {
+				src : 'plugin/highlight/highlight.js',
+				async : true,
+				callback : function() {
+					hljs.initHighlightingOnLoad();
+				}
+			}, {
+				src : 'plugin/zoom-js/zoom.js',
+				async : true,
+				condition : function() {
+					return !!document.body.classList;
+				}
+			}, {
+				src : 'plugin/notes/notes.js',
+				async : true,
+				condition : function() {
+					return !!document.body.classList;
+				}
+			} ]
+		});
+	</script>
+
+</body>
+</html>
